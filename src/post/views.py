@@ -1,16 +1,18 @@
 from datetime import datetime
 from rest_framework.decorators import api_view
 from django.http import HttpResponse
-
-
-from post.serializer import PostSearializer
-from .models import Post
+from post.serializer import PostSearializer, PostImageSearializer
+from post.models import Post, PostImage, PostCommentPinned
 from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework import status
 from django.utils import timezone
-
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+
+# from django.http import JsonResponse
+# import requests
+# from bs4 import BeautifulSoup
 
 
 @api_view(["GET"])
@@ -99,3 +101,66 @@ def delete_post(request):
     post.delete()
 
     return HttpResponse("Post deleted")
+
+
+class PostImageview(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        post_id = request.data.get("Post")
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response(
+                {"message": "Post not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        imgSeralizer = PostImageSearializer(data=request.data)
+        if imgSeralizer.is_valid():
+            imgSeralizer.save()
+            return Response(imgSeralizer.data, status=status.HTTP_200_OK)
+
+        return Response(imgSeralizer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# def scrape_example_domain(request):
+
+#     url = "https://example.com"
+
+#     response = requests.get(url)
+
+#     if response.status_code == 200:
+
+#         soup = BeautifulSoup(response.text, "html.parser")
+
+#         links = soup.find_all("a")
+#         for link in links:
+#             print(link.get("href"))
+
+#         # Find and extract the text content of the <title> tag
+#         title = soup.title.text
+#         print("Title:", title)
+
+#         heading = soup.find("h1").text
+#         paragraph = soup.find("p").text
+
+#         return JsonResponse({"heading": heading, "paragraph": paragraph})
+
+#     else:
+#         return JsonResponse({"error": "Failed to fetch the page"}, status=500)
+
+
+class PostCommentView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        post_id = request.data.get("Post")
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response(
+                {"message": "Post not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+    queryset = PostCommentPinned.objects.all()
+    serializer_class = PostImageSearializer
